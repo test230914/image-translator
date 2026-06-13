@@ -47,7 +47,6 @@
 
     <!-- 主内容区 -->
     <main class="flex-1 container mx-auto px-4 py-8 max-w-7xl">
-        <!-- 控制面板 -->
         <div class="glass rounded-2xl p-4 mb-8 flex flex-wrap items-center gap-4 justify-center">
             <select id="fromLang" class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="auto">自动检测</option><option value="en">英语</option><option value="zh">中文</option><option value="ru">俄语</option><option value="spa">西班牙语</option><option value="pt">葡萄牙语</option><option value="jp">日语</option>
@@ -67,7 +66,6 @@
             </button>
         </div>
 
-        <!-- 任务列表区 -->
         <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         
         <div id="emptyState" class="text-center py-20 text-gray-500">
@@ -83,20 +81,20 @@
                 <h3 class="text-lg font-bold">API 密钥设置</h3>
                 <button id="closeModal" class="p-1 hover:bg-gray-800 rounded"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-xs text-gray-400 mb-4">调用百度智能云图片翻译 API，确保电商海报背景完美修复。密钥仅保存在本地。</p>
+            <p class="text-xs text-gray-400 mb-4">请填写百度翻译开放平台“开发者信息”中的全局 APP ID 和 密钥。</p>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium mb-1">APP ID</label>
+                    <label class="block text-sm font-medium mb-1">APP ID (纯数字)</label>
                     <input id="appIdInput" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">密钥 (Secret Key)</label>
+                    <label class="block text-sm font-medium mb-1">密钥 (字母数字混合)</label>
                     <input id="keyInput" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
             <div class="mt-6 flex gap-3">
                 <button id="saveSettings" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">保存设置</button>
-                <a href="https://api.fanyi.baidu.com/doc/21" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-800 text-center py-2 rounded-lg text-sm font-medium transition-colors">如何申请 API？</a>
+                <button id="clearTasksBtn" class="flex-1 border border-gray-600 hover:bg-gray-800 text-center py-2 rounded-lg text-sm font-medium transition-colors">清空当前图片</button>
             </div>
         </div>
     </div>
@@ -104,7 +102,6 @@
     <script>
         lucide.createIcons();
 
-        // ================= 1. 访问口令逻辑 =================
         const ACCESS_PASSWORD = '202406132026vip'; // 【重要】修改为你的口令
         const authOverlay = document.getElementById('authOverlay');
         const authPassword = document.getElementById('authPassword');
@@ -117,31 +114,31 @@
 
         authBtn.addEventListener('click', () => {
             if (authPassword.value === ACCESS_PASSWORD) {
-                authError.classList.add('hidden');
-                authOverlay.classList.add('hidden');
+                authError.classList.add('hidden'); authOverlay.classList.add('hidden');
                 if (rememberMe.checked) localStorage.setItem('is_authed', 'true');
                 else sessionStorage.setItem('is_authed', 'true');
-            } else {
-                authError.classList.remove('hidden');
-                authPassword.value = '';
-            }
+            } else { authError.classList.remove('hidden'); authPassword.value = ''; }
         });
         authPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') authBtn.click(); });
 
-        // ================= 2. 批量翻译核心逻辑 =================
         const fileInput = document.getElementById('fileInput');
         const translateAllBtn = document.getElementById('translateAllBtn');
         const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
+        const clearTasksBtn = document.getElementById('clearTasksBtn');
         
         let tasks = []; 
 
         document.getElementById('appIdInput').value = localStorage.getItem('baidu_appid') || '';
         document.getElementById('keyInput').value = localStorage.getItem('baidu_key') || '';
 
+        // 【修复问题一】：选择新图片时，自动清空旧图片
         fileInput.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
+            
+            tasks = []; // 清空数组
+            taskList.innerHTML = ''; // 清空界面
             
             emptyState.classList.add('hidden');
             translateAllBtn.disabled = false;
@@ -153,7 +150,6 @@
                 renderTaskCard(task);
             });
             
-            // 预览原图 (修复了不显示的Bug)
             tasks.forEach(task => {
                 if (task.status === 'pending' && !task.originalUrl) {
                     const reader = new FileReader();
@@ -161,14 +157,22 @@
                         task.originalUrl = e.target.result;
                         const imgEl = document.getElementById(`orig-img-${task.id}`);
                         const iconEl = document.getElementById(`orig-icon-${task.id}`);
-                        
                         imgEl.src = task.originalUrl;
-                        imgEl.classList.remove('hidden'); // 显示图片
-                        iconEl.classList.add('hidden');   // 隐藏占位图标
+                        imgEl.classList.remove('hidden'); 
+                        iconEl.classList.add('hidden');   
                     };
                     reader.readAsDataURL(task.file);
                 }
             });
+        });
+
+        // 新增：手动清空图片按钮
+        clearTasksBtn.addEventListener('click', () => {
+            tasks = [];
+            taskList.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            translateAllBtn.disabled = true;
+            fileInput.value = ''; // 重置 input
         });
 
         function renderTaskCard(task) {
@@ -191,9 +195,7 @@
                             </div>
                         </div>
                     </div>
-                    <!-- 新增：错误原因显示区 -->
                     <div id="error-${task.id}" class="text-xs text-red-400 mt-2 break-all hidden"></div>
-                    
                     <button id="dl-btn-${task.id}" class="hidden w-full bg-gray-800 hover:bg-gray-700 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
                         <i data-lucide="download" class="w-4 h-4"></i> 下载译图
                     </button>
@@ -219,7 +221,6 @@
 
             const from = document.getElementById('fromLang').value;
             const to = document.getElementById('toLang').value;
-
             const pendingTasks = tasks.filter(t => t.status === 'pending');
 
             for (const task of pendingTasks) {
@@ -246,10 +247,7 @@
             errorEl.classList.add('hidden');
 
             try {
-                // 1. 深度压缩图片 (防止 Vercel 10s 超时)
                 const base64 = await compressImage(task.file);
-                
-                // 2. 调用 API
                 const res = await fetch('/api/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -259,28 +257,36 @@
                 const contentType = res.headers.get("content-type");
                 if (!contentType || !contentType.includes("application/json")) {
                     const text = await res.text();
-                    if (text.includes("timeout") || text.includes("504")) {
-                        throw new Error("处理超时，请尝试上传尺寸更小的图片");
-                    }
                     throw new Error(`服务器异常: ${text.substring(0, 30)}...`);
                 }
 
                 const data = await res.json();
-                if (data.error) throw new Error(data.error);
+                if (data.error) {
+                    let errMsg = data.error;
+                    // 【新增】显示调试信息
+                    if (data.debug) {
+                        errMsg += ` | [调试: APPID长${data.debug.appid_len}, 密钥长${data.debug.key_len}, APPID是纯数字:${data.debug.appid_is_num}]`;
+                    }
+                    throw new Error(errMsg);
+                }
                 
                 let resultImgSrc = '';
                 if (data.data && data.data.pasteImg) resultImgSrc = 'data:image/jpeg;base64,' + data.data.pasteImg;
                 else if (data.data && data.data.dst) resultImgSrc = data.data.dst;
                 else throw new Error('未能获取翻译结果');
 
-                // 3. 更新 UI (修复了译图不显示的Bug)
                 task.translatedUrl = resultImgSrc;
                 transImgEl.src = resultImgSrc;
-                transImgEl.classList.remove('hidden'); // 显示译图
-                transIconEl.classList.add('hidden');   // 隐藏占位图标
+                transImgEl.classList.remove('hidden'); 
+                transIconEl.classList.add('hidden');   
                 
                 dlBtn.classList.remove('hidden');
-                dlBtn.onclick = () => downloadImage(resultImgSrc, `translated_${task.file.name}`);
+                dlBtn.onclick = () => {
+                    const link = document.createElement('a');
+                    link.href = resultImgSrc;
+                    link.download = `translated_${task.file.name}`;
+                    link.click();
+                };
 
                 task.status = 'success';
                 statusEl.textContent = '成功';
@@ -290,18 +296,13 @@
                 task.status = 'failed';
                 statusEl.textContent = '失败';
                 statusEl.className = 'text-xs px-2 py-1 rounded-full bg-red-900 text-red-300';
-                
-                // 直接显示失败原因
                 errorEl.textContent = `原因: ${err.message}`;
                 errorEl.classList.remove('hidden');
-                
-                console.error(`Task ${task.id} failed:`, err);
             } finally {
                 loadingEl.classList.add('hidden');
             }
         }
 
-        // 深度图片压缩工具
         function compressImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -310,7 +311,6 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         let width = img.width, height = img.height;
-                        // 进一步限制最大边长为 1000px，确保不超时
                         const maxDim = 1000; 
                         if (width > maxDim || height > maxDim) {
                             const ratio = Math.min(maxDim / width, maxDim / height);
@@ -318,7 +318,6 @@
                         }
                         canvas.width = width; canvas.height = height;
                         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        // 质量压缩到 0.6
                         resolve(canvas.toDataURL('image/jpeg', 0.6)); 
                     };
                     img.src = e.target.result;
@@ -327,14 +326,6 @@
             });
         }
 
-        function downloadImage(url, filename) {
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename || 'translated_image.jpg';
-            link.click();
-        }
-
-        // ================= 3. 设置弹窗逻辑 =================
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
         const closeModal = document.getElementById('closeModal');
@@ -343,8 +334,8 @@
         settingsBtn.addEventListener('click', () => { settingsModal.classList.remove('hidden'); settingsModal.classList.add('flex'); });
         closeModal.addEventListener('click', () => { settingsModal.classList.add('hidden'); settingsModal.classList.remove('flex'); });
         saveSettings.addEventListener('click', () => {
-            localStorage.setItem('baidu_appid', document.getElementById('appIdInput').value);
-            localStorage.setItem('baidu_key', document.getElementById('keyInput').value);
+            localStorage.setItem('baidu_appid', document.getElementById('appIdInput').value.trim()); // 自动去除首尾空格
+            localStorage.setItem('baidu_key', document.getElementById('keyInput').value.trim());
             alert('设置已保存！');
             settingsModal.classList.add('hidden');
             settingsModal.classList.remove('flex');
