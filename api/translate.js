@@ -1,7 +1,5 @@
-// 终极修复版 api/translate.js (使用原生 crypto 严格计算签名)
-const axios = require('axios');
-const crypto = require('crypto'); // 使用 Node 原生加密库
-const FormData = require('form-data');
+const tencentcloud = require('tencentcloud-sdk-nodejs');
+const TmtClient = tencentcloud.tmt.v20180321.Client;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,47 +10,45 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { imageBase64, from, to, appid, key } = req.body;
+    const { imageBase64, from, to, secretId, secretKey } = req.body;
 
-    if (!imageBase64 || !appid || !key) {
+    if (!imageBase64 || !secretId || !secretKey) {
       return res.status(400).json({ error: '缺少必要参数' });
     }
 
-    const cleanAppid = appid.trim();
-    const cleanKey = key.trim();
-    const salt = Date.now().toString();
-    
-    // 严格截取 base64
-    const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-    
-    // 【核心修复】：使用原生 crypto 严格计算 MD5，确保与百度服务器完全一致
-    const imageMd5 = crypto.createHash('md5').update(cleanBase64, 'binary').digest('hex');
-    const signStr = cleanAppid + imageMd5 + salt + cleanKey;
-    const sign = crypto.createHash('md5').update(signStr, 'utf8').digest('hex');
-
-    const formData = new FormData();
-    formData.append('from', from);
-    formData.append('to', to);
-    formData.append('appid', cleanAppid);
-    formData.append('salt', salt);
-    formData.append('sign', sign);
-    formData.append('image', cleanBase64);
-
-    const response = await axios.post('https://fanyi-api.baidu.com/api/trans/sdk/picture', formData, {
-      headers: formData.getHeaders(),
-      timeout: 20000 // 增加超时时间
+    // 初始化腾讯云客户端 (使用官方 SDK，自动处理所有复杂的签名算法)
+    const client = new TmtClient({
+      credential: { secretId: secretId.trim(), secretKey: secretKey.trim() },
+      region: "ap-guangzhou",
+      profile: { httpProfile: { endpoint: "tmt.tencentcloudapi.com" } }
     });
-    
-    if (response.data.error_code && response.data.error_code !== '0' && response.data.error_code !== 0) {
-        return res.status(400).json({ 
-            error: `百度API报错: ${response.data.error_msg} (Code: ${response.data.error_code})`
-        });
+
+    // 去除 base64 前缀
+    const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+
+    // 语言代码映射 (腾讯云的语言代码与百度略有不同)
+    const langMap = { 'auto': 'auto', 'zh': 'zh', 'en': 'en', 'ru': 'ru', 'spa': 'es', 'pt': 'pt', 'jp': 'ja' };
+    const sourceLang = langMap[from] || 'auto';
+    const targetLang = langMap[to] || 'zh';
+
+    // 调用腾讯云图片翻译 API
+    const response = await client.ImageTranslation({
+      Source: sourceLang,
+      Target: targetLang,
+      ProjectId: 0,
+      Data: cleanBase64
+    });
+
+    if (response.Error) {
+      return res.status(400).json({ error: `腾讯云API报错: ${response.Error.Message} (Code: ${response.Error.Code})` });
     }
 
-    res.status(200).json(response.data);
+    // 腾讯云返回的 ImageData 就是翻译后的 base64 图片
+    res.status(200).json({ 
+      data: { pasteImg: response.ImageData } 
+    });
+
   } catch (error) {
-    let errMsg = error.message;
-    if (error.code === 'ECONNABORTED') errMsg = '请求超时';
-    res.status(500).json({ error: `服务器内部错误: ${errMsg}` });
+    res.status(500).json({ error: `服务器内部错误: ${error.message}` });
   }
 };
