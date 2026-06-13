@@ -143,4 +143,212 @@
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
             
-            emptyState.classList.add('hidden'); :dot:
+            emptyState.classList.add('hidden');
+            translateAllBtn.disabled = false;
+            
+            files.forEach((file, index) => {
+                const taskId = Date.now() + index;
+                const task = { id: taskId, file: file, status: 'pending', originalUrl: '', translatedUrl: '' };
+                tasks.push(task);
+                renderTaskCard(task);
+            });
+            
+            // 预览原图 (修复了不显示的Bug)
+            tasks.forEach(task => {
+                if (task.status === 'pending' && !task.originalUrl) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        task.originalUrl = e.target.result;
+                        const imgEl = document.getElementById(`orig-img-${task.id}`);
+                        const iconEl = document.getElementById(`orig-icon-${task.id}`);
+                        
+                        imgEl.src = task.originalUrl;
+                        imgEl.classList.remove('hidden'); // 显示图片
+                        iconEl.classList.add('hidden');   // 隐藏占位图标
+                    };
+                    reader.readAsDataURL(task.file);
+                }
+            });
+        });
+
+        function renderTaskCard(task) {
+            const cardHtml = `
+                <div id="card-${task.id}" class="task-card glass rounded-xl p-4 flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-medium truncate max-w-[150px]" title="${task.file.name}">${task.file.name}</span>
+                        <span id="status-${task.id}" class="text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-300">等待中</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-3 flex-1">
+                        <div class="bg-gray-900/50 rounded-lg flex items-center justify-center overflow-hidden aspect-square">
+                            <img id="orig-img-${task.id}" class="max-h-full max-w-full object-contain hidden" />
+                            <i id="orig-icon-${task.id}" data-lucide="image" class="w-8 h-8 text-gray-600"></i>
+                        </div>
+                        <div class="bg-gray-900/50 rounded-lg flex items-center justify-center overflow-hidden aspect-square relative">
+                            <img id="trans-img-${task.id}" class="max-h-full max-w-full object-contain hidden" />
+                            <i id="trans-icon-${task.id}" data-lucide="sparkles" class="w-8 h-8 text-gray-600"></i>
+                            <div id="loading-${task.id}" class="hidden absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 新增：错误原因显示区 -->
+                    <div id="error-${task.id}" class="text-xs text-red-400 mt-2 break-all hidden"></div>
+                    
+                    <button id="dl-btn-${task.id}" class="hidden w-full bg-gray-800 hover:bg-gray-700 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> 下载译图
+                    </button>
+                </div>
+            `;
+            taskList.insertAdjacentHTML('beforeend', cardHtml);
+            lucide.createIcons(); 
+        }
+
+        translateAllBtn.addEventListener('click', async () => {
+            const appid = localStorage.getItem('baidu_appid');
+            const key = localStorage.getItem('baidu_key');
+            if (!appid || !key) {
+                alert('请先在右上角设置中填写 API 密钥！');
+                document.getElementById('settingsModal').classList.remove('hidden');
+                document.getElementById('settingsModal').classList.add('flex');
+                return;
+            }
+
+            translateAllBtn.disabled = true;
+            translateAllBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 翻译中...';
+            lucide.createIcons();
+
+            const from = document.getElementById('fromLang').value;
+            const to = document.getElementById('toLang').value;
+
+            const pendingTasks = tasks.filter(t => t.status === 'pending');
+
+            for (const task of pendingTasks) {
+                await processTask(task, from, to, appid, key);
+            }
+
+            translateAllBtn.disabled = false;
+            translateAllBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> 开始批量翻译';
+            lucide.createIcons();
+        });
+
+        async function processTask(task, from, to, appid, key) {
+            const statusEl = document.getElementById(`status-${task.id}`);
+            const loadingEl = document.getElementById(`loading-${task.id}`);
+            const transImgEl = document.getElementById(`trans-img-${task.id}`);
+            const transIconEl = document.getElementById(`trans-icon-${task.id}`);
+            const dlBtn = document.getElementById(`dl-btn-${task.id}`);
+            const errorEl = document.getElementById(`error-${task.id}`);
+
+            task.status = 'processing';
+            statusEl.textContent = '翻译中';
+            statusEl.className = 'text-xs px-2 py-1 rounded-full bg-blue-900 text-blue-300';
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+
+            try {
+                // 1. 深度压缩图片 (防止 Vercel 10s 超时)
+                const base64 = await compressImage(task.file);
+                
+                // 2. 调用 API
+                const res = await fetch('/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64: base64, from, to, appid, key })
+                });
+
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const text = await res.text();
+                    if (text.includes("timeout") || text.includes("504")) {
+                        throw new Error("处理超时，请尝试上传尺寸更小的图片");
+                    }
+                    throw new Error(`服务器异常: ${text.substring(0, 30)}...`);
+                }
+
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                
+                let resultImgSrc = '';
+                if (data.data && data.data.pasteImg) resultImgSrc = 'data:image/jpeg;base64,' + data.data.pasteImg;
+                else if (data.data && data.data.dst) resultImgSrc = data.data.dst;
+                else throw new Error('未能获取翻译结果');
+
+                // 3. 更新 UI (修复了译图不显示的Bug)
+                task.translatedUrl = resultImgSrc;
+                transImgEl.src = resultImgSrc;
+                transImgEl.classList.remove('hidden'); // 显示译图
+                transIconEl.classList.add('hidden');   // 隐藏占位图标
+                
+                dlBtn.classList.remove('hidden');
+                dlBtn.onclick = () => downloadImage(resultImgSrc, `translated_${task.file.name}`);
+
+                task.status = 'success';
+                statusEl.textContent = '成功';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-green-900 text-green-300';
+
+            } catch (err) {
+                task.status = 'failed';
+                statusEl.textContent = '失败';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-red-900 text-red-300';
+                
+                // 直接显示失败原因
+                errorEl.textContent = `原因: ${err.message}`;
+                errorEl.classList.remove('hidden');
+                
+                console.error(`Task ${task.id} failed:`, err);
+            } finally {
+                loadingEl.classList.add('hidden');
+            }
+        }
+
+        // 深度图片压缩工具
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width, height = img.height;
+                        // 进一步限制最大边长为 1000px，确保不超时
+                        const maxDim = 1000; 
+                        if (width > maxDim || height > maxDim) {
+                            const ratio = Math.min(maxDim / width, maxDim / height);
+                            width *= ratio; height *= ratio;
+                        }
+                        canvas.width = width; canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        // 质量压缩到 0.6
+                        resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function downloadImage(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || 'translated_image.jpg';
+            link.click();
+        }
+
+        // ================= 3. 设置弹窗逻辑 =================
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeModal = document.getElementById('closeModal');
+        const saveSettings = document.getElementById('saveSettings');
+
+        settingsBtn.addEventListener('click', () => { settingsModal.classList.remove('hidden'); settingsModal.classList.add('flex'); });
+        closeModal.addEventListener('click', () => { settingsModal.classList.add('hidden'); settingsModal.classList.remove('flex'); });
+        saveSettings.addEventListener('click', () => {
+            localStorage.setItem('baidu_appid', document.getElementById('appIdInput').value);
+            localStorage.setItem('baidu_key', document.getElementById('keyInput').value);
+            alert('设置已保存！');
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
+        });
+    </script>
+</body>
+</html>
