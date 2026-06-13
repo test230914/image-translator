@@ -14,38 +14,51 @@ module.exports = async (req, res) => {
     const { imageBase64, from, to, appid, key } = req.body;
 
     if (!imageBase64 || !appid || !key) {
-      return res.status(400).json({ error: '缺少必要参数 (图片、APPID或密钥)' });
+      return res.status(400).json({ error: '缺少必要参数' });
     }
 
+    // 去除可能存在的空格
+    const cleanAppid = appid.trim();
+    const cleanKey = key.trim();
+
     const salt = Date.now().toString();
-    const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    
+    // 优化 base64 截取，防止正则失效导致 MD5 算错
+    const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    
+    // 计算签名
     const imageMd5 = md5(cleanBase64);
-    const sign = md5(appid + imageMd5 + salt + key);
+    const sign = md5(cleanAppid + imageMd5 + salt + cleanKey);
 
     const formData = new FormData();
     formData.append('from', from);
     formData.append('to', to);
-    formData.append('appid', appid);
+    formData.append('appid', cleanAppid);
     formData.append('salt', salt);
     formData.append('sign', sign);
     formData.append('image', cleanBase64);
 
-    // 增加超时时间到 15 秒
     const response = await axios.post('https://fanyi-api.baidu.com/api/trans/sdk/picture', formData, {
       headers: formData.getHeaders(),
       timeout: 15000 
     });
     
     if (response.data.error_code && response.data.error_code !== '0' && response.data.error_code !== 0) {
-        return res.status(400).json({ error: `百度API报错: ${response.data.error_msg} (Code: ${response.data.error_code})` });
+        // 【新增】返回调试信息，帮助排查 54001
+        return res.status(400).json({ 
+            error: `百度API报错: ${response.data.error_msg} (Code: ${response.data.error_code})`,
+            debug: {
+                appid_len: cleanAppid.length,
+                key_len: cleanKey.length,
+                appid_is_num: /^\d+$/.test(cleanAppid)
+            }
+        });
     }
 
-    // 确保返回的是标准 JSON
     res.status(200).json(response.data);
   } catch (error) {
-    // 捕获所有未知错误，强制返回 JSON，防止前端解析报错
     let errMsg = error.message;
-    if (error.code === 'ECONNABORTED') errMsg = '请求超时，请尝试压缩图片或稍后重试';
+    if (error.code === 'ECONNABORTED') errMsg = '请求超时，请尝试上传尺寸更小的图片';
     res.status(500).json({ error: `服务器内部错误: ${errMsg}` });
   }
 };
