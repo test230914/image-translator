@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 图像翻译 - 电商海报级排版</title>
+    <title>AI 图像批量翻译 - 电商海报级</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -11,14 +11,14 @@
         .glass { background: rgba(20, 20, 20, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .glow-btn { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
         .glow-btn:hover { box-shadow: 0 0 25px rgba(59, 130, 246, 0.8); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #111; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #111; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .task-card { transition: all 0.3s ease; }
+        .task-card:hover { transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.5); }
     </style>
 </head>
 <body class="text-gray-200 min-h-screen flex flex-col font-sans">
 
-    <!-- 【新增】访问口令拦截层 -->
+    <!-- 访问口令拦截层 -->
     <div id="authOverlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
         <div class="glass rounded-2xl p-8 w-full max-w-sm text-center">
             <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20">
@@ -26,17 +26,12 @@
             </div>
             <h2 class="text-xl font-bold mb-2">私密访问</h2>
             <p class="text-sm text-gray-400 mb-6">本站仅供指定好友使用，请输入访问口令</p>
-            
             <input id="authPassword" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="请输入口令">
-            
             <div class="flex items-center justify-center gap-2 mb-6">
                 <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500" checked>
                 <label for="rememberMe" class="text-sm text-gray-400">记住我（7天内免密）</label>
             </div>
-
-            <button id="authBtn" class="w-full glow-btn bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium transition-all hover:scale-105">
-                验证并进入
-            </button>
+            <button id="authBtn" class="w-full glow-btn bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium transition-all hover:scale-105">验证并进入</button>
             <p id="authError" class="text-red-400 text-sm mt-4 hidden">口令错误，请重试</p>
         </div>
     </div>
@@ -44,14 +39,10 @@
     <!-- 顶部导航 -->
     <header class="glass border-b border-gray-800 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <i data-lucide="languages" class="w-5 h-5 text-white"></i>
-            </div>
-            <h1 class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">AI 图像翻译</h1>
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center"><i data-lucide="languages" class="w-5 h-5 text-white"></i></div>
+            <h1 class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">AI 图像批量翻译</h1>
         </div>
-        <button id="settingsBtn" class="p-2 hover:bg-gray-800 rounded-lg transition-colors" title="API 设置">
-            <i data-lucide="settings" class="w-5 h-5 text-gray-400"></i>
-        </button>
+        <button id="settingsBtn" class="p-2 hover:bg-gray-800 rounded-lg transition-colors" title="API 设置"><i data-lucide="settings" class="w-5 h-5 text-gray-400"></i></button>
     </header>
 
     <!-- 主内容区 -->
@@ -59,66 +50,42 @@
         <!-- 控制面板 -->
         <div class="glass rounded-2xl p-4 mb-8 flex flex-wrap items-center gap-4 justify-center">
             <select id="fromLang" class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="auto">自动检测</option>
-                <option value="en">英语</option>
-                <option value="zh">中文</option>
-                <option value="ru">俄语</option>
-                <option value="spa">西班牙语</option>
-                <option value="pt">葡萄牙语</option>
-                <option value="jp">日语</option>
+                <option value="auto">自动检测</option><option value="en">英语</option><option value="zh">中文</option><option value="ru">俄语</option><option value="spa">西班牙语</option><option value="pt">葡萄牙语</option><option value="jp">日语</option>
             </select>
             <i data-lucide="arrow-right" class="w-4 h-4 text-gray-500"></i>
             <select id="toLang" class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="zh">中文</option>
-                <option value="en">英语</option>
-                <option value="ru">俄语</option>
-                <option value="spa">西班牙语</option>
-                <option value="pt">葡萄牙语</option>
-                <option value="jp">日语</option>
+                <option value="zh">中文</option><option value="en">英语</option><option value="ru">俄语</option><option value="spa">西班牙语</option><option value="pt">葡萄牙语</option><option value="jp">日语</option>
             </select>
-            <button id="translateBtn" class="glow-btn bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105 flex items-center gap-2">
-                <i data-lucide="sparkles" class="w-4 h-4"></i> 开始翻译
+            
+            <label class="glow-btn bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105 flex items-center gap-2 cursor-pointer">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> 选择图片 (可多选)
+                <input type="file" id="fileInput" class="hidden" accept="image/*" multiple>
+            </label>
+
+            <button id="translateAllBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i data-lucide="play" class="w-4 h-4"></i> 开始批量翻译
             </button>
         </div>
 
-        <!-- 图片对比区 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="glass rounded-2xl p-6 flex flex-col">
-                <h2 class="text-sm font-semibold text-gray-400 mb-4 flex items-center gap-2"><i data-lucide="image" class="w-4 h-4"></i> 原始图片</h2>
-                <div id="dropZone" class="flex-1 border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors min-h-[400px] relative overflow-hidden">
-                    <div id="uploadPrompt" class="text-center p-8">
-                        <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-600 mx-auto mb-4"></i>
-                        <p class="text-gray-400">拖拽图片到此处，或 <span class="text-blue-400 underline">点击上传</span></p>
-                    </div>
-                    <img id="originalImg" class="hidden max-h-[500px] object-contain rounded-lg" />
-                    <input type="file" id="fileInput" class="hidden" accept="image/*">
-                </div>
-            </div>
-            <div class="glass rounded-2xl p-6 flex flex-col">
-                <h2 class="text-sm font-semibold text-gray-400 mb-4 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> 翻译结果</h2>
-                <div class="flex-1 bg-gray-900/50 rounded-xl flex items-center justify-center min-h-[400px] relative overflow-hidden">
-                    <div id="loadingState" class="hidden flex-col items-center">
-                        <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p class="text-sm text-gray-400">AI 正在修复背景并翻译...</p>
-                    </div>
-                    <p id="emptyState" class="text-gray-600 text-sm">翻译后的图片将显示在这里</p>
-                    <img id="translatedImg" class="hidden max-h-[500px] object-contain rounded-lg" />
-                    <button id="downloadBtn" class="hidden absolute bottom-4 right-4 bg-gray-800 hover:bg-gray-700 p-2 rounded-lg transition-colors" title="下载图片">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
+        <!-- 任务列表区 -->
+        <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 动态生成的任务卡片将在这里 -->
+        </div>
+        
+        <div id="emptyState" class="text-center py-20 text-gray-500">
+            <i data-lucide="image-plus" class="w-16 h-16 mx-auto mb-4 opacity-50"></i>
+            <p>请点击上方按钮选择一张或多张图片开始翻译</p>
         </div>
     </main>
 
-    <!-- 设置弹窗 (保持不变) -->
+    <!-- 设置弹窗 -->
     <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="glass rounded-2xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-lg font-bold">API 密钥设置</h3>
                 <button id="closeModal" class="p-1 hover:bg-gray-800 rounded"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-xs text-gray-400 mb-4">您的密钥仅保存在本地浏览器中，绝对安全。</p>
+            <p class="text-xs text-gray-400 mb-4">调用百度智能云图片翻译 API，确保电商海报背景完美修复。密钥仅保存在本地。</p>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium mb-1">APP ID</label>
@@ -129,7 +96,10 @@
                     <input id="keyInput" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
-            <button id="saveSettings" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">保存设置</button>
+            <div class="mt-6 flex gap-3">
+                <button id="saveSettings" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">保存设置</button>
+                <a href="https://api.fanyi.baidu.com/doc/21" target="_blank" class="flex-1 border border-gray-600 hover:bg-gray-800 text-center py-2 rounded-lg text-sm font-medium transition-colors">如何申请 API？</a>
+            </div>
         </div>
     </div>
 
@@ -137,118 +107,160 @@
         lucide.createIcons();
 
         // ================= 1. 访问口令逻辑 =================
-        // 【重要】在这里修改你的访问口令！把 '2024vip' 改成你想要的任何密码
-        const ACCESS_PASSWORD = '202406132026vip'; 
-
+        const ACCESS_PASSWORD = '2024vip'; // 【重要】修改为你的口令
         const authOverlay = document.getElementById('authOverlay');
         const authPassword = document.getElementById('authPassword');
         const authBtn = document.getElementById('authBtn');
         const authError = document.getElementById('authError');
         const rememberMe = document.getElementById('rememberMe');
 
-        // 检查是否已经验证过
         const isAuthed = localStorage.getItem('is_authed') === 'true' || sessionStorage.getItem('is_authed') === 'true';
-        if (isAuthed) {
-            authOverlay.classList.add('hidden');
-        }
+        if (isAuthed) authOverlay.classList.add('hidden');
 
         authBtn.addEventListener('click', () => {
             if (authPassword.value === ACCESS_PASSWORD) {
                 authError.classList.add('hidden');
                 authOverlay.classList.add('hidden');
-                if (rememberMe.checked) {
-                    localStorage.setItem('is_authed', 'true');
-                } else {
-                    sessionStorage.setItem('is_authed', 'true');
-                }
+                if (rememberMe.checked) localStorage.setItem('is_authed', 'true');
+                else sessionStorage.setItem('is_authed', 'true');
             } else {
                 authError.classList.remove('hidden');
                 authPassword.value = '';
             }
         });
+        authPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') authBtn.click(); });
 
-        authPassword.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') authBtn.click();
-        });
-
-        // ================= 2. 核心翻译逻辑 (保持不变) =================
-        const dropZone = document.getElementById('dropZone');
+        // ================= 2. 批量翻译核心逻辑 =================
         const fileInput = document.getElementById('fileInput');
-        const originalImg = document.getElementById('originalImg');
-        const uploadPrompt = document.getElementById('uploadPrompt');
-        const translateBtn = document.getElementById('translateBtn');
-        const translatedImg = document.getElementById('translatedImg');
-        const loadingState = document.getElementById('loadingState');
+        const translateAllBtn = document.getElementById('translateAllBtn');
+        const taskList = document.getElementById('taskList');
         const emptyState = document.getElementById('emptyState');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsModal = document.getElementById('settingsModal');
-        const closeModal = document.getElementById('closeModal');
-        const saveSettings = document.getElementById('saveSettings');
+        
+        let tasks = []; // 存储所有任务
 
-        let currentImageBase64 = '';
-
+        // 初始化设置
         document.getElementById('appIdInput').value = localStorage.getItem('baidu_appid') || '';
         document.getElementById('keyInput').value = localStorage.getItem('baidu_key') || '';
 
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-500'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-blue-500');
-            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        // 选择文件
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            emptyState.classList.add('hidden');
+            translateAllBtn.disabled = false;
+            
+            files.forEach((file, index) => {
+                const taskId = Date.now() + index;
+                const task = { id: taskId, file: file, status: 'pending', originalUrl: '', translatedUrl: '' };
+                tasks.push(task);
+                renderTaskCard(task);
+            });
+            
+            // 预览原图
+            tasks.forEach(task => {
+                if (task.status === 'pending' && !task.originalUrl) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        task.originalUrl = e.target.result;
+                        document.getElementById(`orig-img-${task.id}`).src = task.originalUrl;
+                    };
+                    reader.readAsDataURL(task.file);
+                }
+            });
         });
-        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
-        function handleFile(file) {
-            if (!file.type.startsWith('image/')) return alert('请上传图片文件');
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height;
-                    if (width > 2000 || height > 2000) {
-                        const ratio = Math.min(2000 / width, 2000 / height);
-                        width *= ratio; height *= ratio;
-                    }
-                    canvas.width = width; canvas.height = height;
-                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                    currentImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
-                    originalImg.src = currentImageBase64;
-                    originalImg.classList.remove('hidden');
-                    uploadPrompt.classList.add('hidden');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        // 渲染任务卡片
+        function renderTaskCard(task) {
+            const cardHtml = `
+                <div id="card-${task.id}" class="task-card glass rounded-xl p-4 flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-medium truncate max-w-[150px]" title="${task.file.name}">${task.file.name}</span>
+                        <span id="status-${task.id}" class="text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-300">等待中</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-3 flex-1">
+                        <div class="bg-gray-900/50 rounded-lg flex items-center justify-center overflow-hidden aspect-square">
+                            <img id="orig-img-${task.id}" class="max-h-full max-w-full object-contain hidden" />
+                            <i data-lucide="image" class="w-8 h-8 text-gray-600 orig-placeholder"></i>
+                        </div>
+                        <div class="bg-gray-900/50 rounded-lg flex items-center justify-center overflow-hidden aspect-square relative">
+                            <img id="trans-img-${task.id}" class="max-h-full max-w-full object-contain hidden" />
+                            <i data-lucide="sparkles" class="w-8 h-8 text-gray-600 trans-placeholder"></i>
+                            <div id="loading-${task.id}" class="hidden absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="dl-btn-${task.id}" class="hidden w-full bg-gray-800 hover:bg-gray-700 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> 下载译图
+                    </button>
+                </div>
+            `;
+            taskList.insertAdjacentHTML('beforeend', cardHtml);
+            lucide.createIcons(); // 重新渲染图标
         }
 
-        translateBtn.addEventListener('click', async () => {
-            if (!currentImageBase64) return alert('请先上传图片');
+        // 开始批量翻译 (串行执行，避免触发API并发限制)
+        translateAllBtn.addEventListener('click', async () => {
             const appid = localStorage.getItem('baidu_appid');
             const key = localStorage.getItem('baidu_key');
             if (!appid || !key) {
                 alert('请先在右上角设置中填写 API 密钥！');
-                settingsModal.classList.remove('hidden'); settingsModal.classList.add('flex');
+                document.getElementById('settingsModal').classList.remove('hidden');
+                document.getElementById('settingsModal').classList.add('flex');
                 return;
             }
 
-            loadingState.classList.remove('hidden'); loadingState.classList.add('flex');
-            emptyState.classList.add('hidden'); translatedImg.classList.add('hidden'); downloadBtn.classList.add('hidden');
+            translateAllBtn.disabled = true;
+            translateAllBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 翻译中...';
+            lucide.createIcons();
+
+            const from = document.getElementById('fromLang').value;
+            const to = document.getElementById('toLang').value;
+
+            // 只翻译 pending 状态的任务
+            const pendingTasks = tasks.filter(t => t.status === 'pending');
+
+            for (const task of pendingTasks) {
+                await processTask(task, from, to, appid, key);
+            }
+
+            translateAllBtn.disabled = false;
+            translateAllBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> 开始批量翻译';
+            lucide.createIcons();
+        });
+
+        // 处理单个任务
+        async function processTask(task, from, to, appid, key) {
+            const statusEl = document.getElementById(`status-${task.id}`);
+            const loadingEl = document.getElementById(`loading-${task.id}`);
+            const transImgEl = document.getElementById(`trans-img-${task.id}`);
+            const dlBtn = document.getElementById(`dl-btn-${task.id}`);
+            const transPlaceholder = document.querySelector(`#card-${task.id} .trans-placeholder`);
+
+            task.status = 'processing';
+            statusEl.textContent = '翻译中';
+            statusEl.className = 'text-xs px-2 py-1 rounded-full bg-blue-900 text-blue-300';
+            loadingEl.classList.remove('hidden');
 
             try {
+                // 1. 压缩图片 (防止 Vercel 10s 超时)
+                const base64 = await compressImage(task.file);
+                
+                // 2. 调用 API
                 const res = await fetch('/api/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        imageBase64: currentImageBase64,
-                        from: document.getElementById('fromLang').value,
-                        to: document.getElementById('toLang').value,
-                        appid, key
-                    })
+                    body: JSON.stringify({ imageBase64: base64, from, to, appid, key })
                 });
+
+                // 增强错误处理：检查返回的是不是 JSON
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const text = await res.text();
+                    throw new Error(`服务器返回非JSON数据: ${text.substring(0, 50)}...`);
+                }
+
                 const data = await res.json();
                 if (data.error) throw new Error(data.error);
                 
@@ -257,20 +269,67 @@
                 else if (data.data && data.data.dst) resultImgSrc = data.data.dst;
                 else throw new Error('未能获取翻译结果');
 
-                translatedImg.src = resultImgSrc;
-                translatedImg.classList.remove('hidden');
-                downloadBtn.classList.remove('hidden');
-            } catch (err) {
-                alert('翻译失败: ' + err.message);
-            } finally {
-                loadingState.classList.add('hidden'); loadingState.classList.remove('flex');
-            }
-        });
+                // 3. 更新 UI
+                task.translatedUrl = resultImgSrc;
+                transImgEl.src = resultImgSrc;
+                transImgEl.classList.remove('hidden');
+                transPlaceholder.classList.add('hidden');
+                dlBtn.classList.remove('hidden');
+                dlBtn.onclick = () => downloadImage(resultImgSrc, `translated_${task.file.name}`);
 
-        downloadBtn.addEventListener('click', () => {
+                task.status = 'success';
+                statusEl.textContent = '成功';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-green-900 text-green-300';
+
+            } catch (err) {
+                task.status = 'failed';
+                statusEl.textContent = '失败';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-red-900 text-red-300';
+                statusEl.title = err.message;
+                console.error(`Task ${task.id} failed:`, err);
+            } finally {
+                loadingEl.classList.add('hidden');
+            }
+        }
+
+        // 图片压缩工具
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width, height = img.height;
+                        // 限制最大边长为 1200px，确保不超时
+                        const maxDim = 1200;
+                        if (width > maxDim || height > maxDim) {
+                            const ratio = Math.min(maxDim / width, maxDim / height);
+                            width *= ratio; height *= ratio;
+                        }
+                        canvas.width = width; canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7)); // 质量压缩到 0.7
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 下载工具
+        function downloadImage(url, filename) {
             const link = document.createElement('a');
-            link.href = translatedImg.src; link.download = 'translated_image.jpg'; link.click();
-        });
+            link.href = url;
+            link.download = filename || 'translated_image.jpg';
+            link.click();
+        }
+
+        // ================= 3. 设置弹窗逻辑 =================
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeModal = document.getElementById('closeModal');
+        const saveSettings = document.getElementById('saveSettings');
 
         settingsBtn.addEventListener('click', () => { settingsModal.classList.remove('hidden'); settingsModal.classList.add('flex'); });
         closeModal.addEventListener('click', () => { settingsModal.classList.add('hidden'); settingsModal.classList.remove('flex'); });
@@ -278,7 +337,8 @@
             localStorage.setItem('baidu_appid', document.getElementById('appIdInput').value);
             localStorage.setItem('baidu_key', document.getElementById('keyInput').value);
             alert('设置已保存！');
-            settingsModal.classList.add('hidden'); settingsModal.classList.remove('flex');
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
         });
     </script>
 </body>
