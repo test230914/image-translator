@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 图像批量翻译 - 电商海报级</title>
+    <title>AI 图像批量翻译 - 电商海报级 (腾讯云版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -18,12 +18,9 @@
 </head>
 <body class="text-gray-200 min-h-screen flex flex-col font-sans">
 
-    <!-- 访问口令拦截层 -->
     <div id="authOverlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
         <div class="glass rounded-2xl p-8 w-full max-w-sm text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20">
-                <i data-lucide="lock" class="w-8 h-8 text-white"></i>
-            </div>
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20"><i data-lucide="lock" class="w-8 h-8 text-white"></i></div>
             <h2 class="text-xl font-bold mb-2">私密访问</h2>
             <p class="text-sm text-gray-400 mb-6">本站仅供指定好友使用，请输入访问口令</p>
             <input id="authPassword" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="请输入口令">
@@ -36,7 +33,6 @@
         </div>
     </div>
 
-    <!-- 顶部导航 -->
     <header class="glass border-b border-gray-800 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center"><i data-lucide="languages" class="w-5 h-5 text-white"></i></div>
@@ -45,7 +41,6 @@
         <button id="settingsBtn" class="p-2 hover:bg-gray-800 rounded-lg transition-colors" title="API 设置"><i data-lucide="settings" class="w-5 h-5 text-gray-400"></i></button>
     </header>
 
-    <!-- 主内容区 -->
     <main class="flex-1 container mx-auto px-4 py-8 max-w-7xl">
         <div class="glass rounded-2xl p-4 mb-8 flex flex-wrap items-center gap-4 justify-center">
             <select id="fromLang" class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -74,272 +69,18 @@
         </div>
     </main>
 
-    <!-- 设置弹窗 -->
     <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="glass rounded-2xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold">API 密钥设置</h3>
+                <h3 class="text-lg font-bold">腾讯云 API 设置</h3>
                 <button id="closeModal" class="p-1 hover:bg-gray-800 rounded"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-xs text-gray-400 mb-4">请填写百度翻译开放平台“开发者信息”中的全局 APP ID 和 密钥。</p>
+            <p class="text-xs text-gray-400 mb-4">已切换至腾讯云图片翻译（每月5000张免费）。请填写腾讯云控制台的 SecretId (36位) 和 SecretKey (32位)。</p>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium mb-1">APP ID (纯数字)</label>
-                    <input id="appIdInput" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm font-medium mb-1">SecretId (36位)</label>
+                    <input id="secretIdInput" type="text" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">密钥 (字母数字混合)</label>
-                    <input id="keyInput" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-            </div>
-            <div class="mt-6 flex gap-3">
-                <button id="saveSettings" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">保存设置</button>
-                <button id="clearTasksBtn" class="flex-1 border border-gray-600 hover:bg-gray-800 text-center py-2 rounded-lg text-sm font-medium transition-colors">清空当前图片</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        lucide.createIcons();
-
-        const ACCESS_PASSWORD = '202406132026vip'; // 【重要】修改为你的口令
-        const authOverlay = document.getElementById('authOverlay');
-        const authPassword = document.getElementById('authPassword');
-        const authBtn = document.getElementById('authBtn');
-        const authError = document.getElementById('authError');
-        const rememberMe = document.getElementById('rememberMe');
-
-        const isAuthed = localStorage.getItem('is_authed') === 'true' || sessionStorage.getItem('is_authed') === 'true';
-        if (isAuthed) authOverlay.classList.add('hidden');
-
-        authBtn.addEventListener('click', () => {
-            if (authPassword.value === ACCESS_PASSWORD) {
-                authError.classList.add('hidden'); authOverlay.classList.add('hidden');
-                if (rememberMe.checked) localStorage.setItem('is_authed', 'true');
-                else sessionStorage.setItem('is_authed', 'true');
-            } else { authError.classList.remove('hidden'); authPassword.value = ''; }
-        });
-        authPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') authBtn.click(); });
-
-        const fileInput = document.getElementById('fileInput');
-        const translateAllBtn = document.getElementById('translateAllBtn');
-        const taskList = document.getElementById('taskList');
-        const emptyState = document.getElementById('emptyState');
-        const clearTasksBtn = document.getElementById('clearTasksBtn');
-        
-        let tasks = []; 
-
-        document.getElementById('appIdInput').value = localStorage.getItem('baidu_appid') || '';
-        document.getElementById('keyInput').value = localStorage.getItem('baidu_key') || '';
-
-        // 【修复问题一】：选择新图片时，自动清空旧图片
-        fileInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            
-            tasks = []; // 清空数组
-            taskList.innerHTML = ''; // 清空界面
-            
-            emptyState.classList.add('hidden');
-            translateAllBtn.disabled = false;
-            
-            files.forEach((file, index) => {
-                const taskId = Date.now() + index;
-                const task = { id: taskId, file: file, status: 'pending', originalUrl: '', translatedUrl: '' };
-                tasks.push(task);
-                renderTaskCard(task);
-            });
-            
-            tasks.forEach(task => {
-                if (task.status === 'pending' && !task.originalUrl) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        task.originalUrl = e.target.result;
-                        const imgEl = document.getElementById(`orig-img-${task.id}`);
-                        const iconEl = document.getElementById(`orig-icon-${task.id}`);
-                        imgEl.src = task.originalUrl;
-                        imgEl.classList.remove('hidden'); 
-                        iconEl.classList.add('hidden');   
-                    };
-                    reader.readAsDataURL(task.file);
-                }
-            });
-        });
-
-        // 新增：手动清空图片按钮
-        clearTasksBtn.addEventListener('click', () => {
-            tasks = [];
-            taskList.innerHTML = '';
-            emptyState.classList.remove('hidden');
-            translateAllBtn.disabled = true;
-            fileInput.value = ''; // 重置 input
-        });
-
-        function renderTaskCard(task) {
-            const cardHtml = `
-                <div id="card-${task.id}" class="task-card glass rounded-xl p-4 flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-sm font-medium truncate max-w-[150px]" title="${task.file.name}">${task.file.name}</span>
-                        <span id="status-${task.id}" class="text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-300">等待中</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mb-3 flex-1">
-                        <div class="bg-gray-900/50 rounded-lg flex items-center justify-center overflow-hidden aspect-square">
-                            <img id="orig-img-${task.id}" class="max-h-full max-w-full object-contain hidden" />
-                            <i id="orig-icon-${task.id}" data-lucide="image" class="w-8 h-8 text-gray-600"></i>
-                        </div>
-                        <div class="bg-gray-900/50 rounded-lg flex items-center justify-center overflow-hidden aspect-square relative">
-                            <img id="trans-img-${task.id}" class="max-h-full max-w-full object-contain hidden" />
-                            <i id="trans-icon-${task.id}" data-lucide="sparkles" class="w-8 h-8 text-gray-600"></i>
-                            <div id="loading-${task.id}" class="hidden absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="error-${task.id}" class="text-xs text-red-400 mt-2 break-all hidden"></div>
-                    <button id="dl-btn-${task.id}" class="hidden w-full bg-gray-800 hover:bg-gray-700 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
-                        <i data-lucide="download" class="w-4 h-4"></i> 下载译图
-                    </button>
-                </div>
-            `;
-            taskList.insertAdjacentHTML('beforeend', cardHtml);
-            lucide.createIcons(); 
-        }
-
-        translateAllBtn.addEventListener('click', async () => {
-            const appid = localStorage.getItem('baidu_appid');
-            const key = localStorage.getItem('baidu_key');
-            if (!appid || !key) {
-                alert('请先在右上角设置中填写 API 密钥！');
-                document.getElementById('settingsModal').classList.remove('hidden');
-                document.getElementById('settingsModal').classList.add('flex');
-                return;
-            }
-
-            translateAllBtn.disabled = true;
-            translateAllBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 翻译中...';
-            lucide.createIcons();
-
-            const from = document.getElementById('fromLang').value;
-            const to = document.getElementById('toLang').value;
-            const pendingTasks = tasks.filter(t => t.status === 'pending');
-
-            for (const task of pendingTasks) {
-                await processTask(task, from, to, appid, key);
-            }
-
-            translateAllBtn.disabled = false;
-            translateAllBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> 开始批量翻译';
-            lucide.createIcons();
-        });
-
-        async function processTask(task, from, to, appid, key) {
-            const statusEl = document.getElementById(`status-${task.id}`);
-            const loadingEl = document.getElementById(`loading-${task.id}`);
-            const transImgEl = document.getElementById(`trans-img-${task.id}`);
-            const transIconEl = document.getElementById(`trans-icon-${task.id}`);
-            const dlBtn = document.getElementById(`dl-btn-${task.id}`);
-            const errorEl = document.getElementById(`error-${task.id}`);
-
-            task.status = 'processing';
-            statusEl.textContent = '翻译中';
-            statusEl.className = 'text-xs px-2 py-1 rounded-full bg-blue-900 text-blue-300';
-            loadingEl.classList.remove('hidden');
-            errorEl.classList.add('hidden');
-
-            try {
-                const base64 = await compressImage(task.file);
-                const res = await fetch('/api/translate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageBase64: base64, from, to, appid, key })
-                });
-
-                const contentType = res.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    const text = await res.text();
-                    throw new Error(`服务器异常: ${text.substring(0, 30)}...`);
-                }
-
-                const data = await res.json();
-                if (data.error) {
-                    let errMsg = data.error;
-                    // 【新增】显示调试信息
-                    if (data.debug) {
-                        errMsg += ` | [调试: APPID长${data.debug.appid_len}, 密钥长${data.debug.key_len}, APPID是纯数字:${data.debug.appid_is_num}]`;
-                    }
-                    throw new Error(errMsg);
-                }
-                
-                let resultImgSrc = '';
-                if (data.data && data.data.pasteImg) resultImgSrc = 'data:image/jpeg;base64,' + data.data.pasteImg;
-                else if (data.data && data.data.dst) resultImgSrc = data.data.dst;
-                else throw new Error('未能获取翻译结果');
-
-                task.translatedUrl = resultImgSrc;
-                transImgEl.src = resultImgSrc;
-                transImgEl.classList.remove('hidden'); 
-                transIconEl.classList.add('hidden');   
-                
-                dlBtn.classList.remove('hidden');
-                dlBtn.onclick = () => {
-                    const link = document.createElement('a');
-                    link.href = resultImgSrc;
-                    link.download = `translated_${task.file.name}`;
-                    link.click();
-                };
-
-                task.status = 'success';
-                statusEl.textContent = '成功';
-                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-green-900 text-green-300';
-
-            } catch (err) {
-                task.status = 'failed';
-                statusEl.textContent = '失败';
-                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-red-900 text-red-300';
-                errorEl.textContent = `原因: ${err.message}`;
-                errorEl.classList.remove('hidden');
-            } finally {
-                loadingEl.classList.add('hidden');
-            }
-        }
-
-        function compressImage(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width, height = img.height;
-                        const maxDim = 1000; 
-                        if (width > maxDim || height > maxDim) {
-                            const ratio = Math.min(maxDim / width, maxDim / height);
-                            width *= ratio; height *= ratio;
-                        }
-                        canvas.width = width; canvas.height = height;
-                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6)); 
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsModal = document.getElementById('settingsModal');
-        const closeModal = document.getElementById('closeModal');
-        const saveSettings = document.getElementById('saveSettings');
-
-        settingsBtn.addEventListener('click', () => { settingsModal.classList.remove('hidden'); settingsModal.classList.add('flex'); });
-        closeModal.addEventListener('click', () => { settingsModal.classList.add('hidden'); settingsModal.classList.remove('flex'); });
-        saveSettings.addEventListener('click', () => {
-            localStorage.setItem('baidu_appid', document.getElementById('appIdInput').value.trim()); // 自动去除首尾空格
-            localStorage.setItem('baidu_key', document.getElementById('keyInput').value.trim());
-            alert('设置已保存！');
-            settingsModal.classList.add('hidden');
-            settingsModal.classList.remove('flex');
-        });
-    </script>
-</body>
-</html>
+                    <label class="block text-sm font-medium mb-1">SecretKey (32位)</label>
+                    <input id="secretKeyInput" type="password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 :dot:
